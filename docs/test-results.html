@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentNext Platform — Test Results</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a1a; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px 20px; }
+  .container { max-width: 900px; margin: 0 auto; }
+  .card { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 20px 30px; background: linear-gradient(135deg, #1a1a3e, #2a1a4e); border: 1px solid #7c4dff; border-radius: 12px; margin-bottom: 20px; }
+  .header h1 { font-size: 28px; color: #00e676; }
+  .header span { color: #9e9e9e; font-size: 18px; }
+  .section-title { color: #448aff; font-size: 18px; font-weight: 600; margin-bottom: 16px; letter-spacing: 1px; }
+  .badge { display: inline-block; background: #00e67620; color: #00e676; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .badge.total { background: #ffd74030; color: #ffd740; font-size: 14px; padding: 4px 12px; }
+
+  /* Services table */
+  .services { width: 100%; border-collapse: collapse; }
+  .services tr { border-bottom: 1px solid #2a2a4a; }
+  .services tr:last-child { border-bottom: none; }
+  .services td { padding: 12px 8px; vertical-align: middle; }
+  .services .icon { width: 30px; font-size: 18px; }
+  .services .name { font-weight: 600; color: #fff; min-width: 140px; }
+  .services .desc { color: #9e9e9e; }
+  .services .port { color: #448aff; font-family: monospace; font-size: 14px; text-align: right; }
+
+  /* Flow */
+  .flow { font-family: monospace; font-size: 15px; line-height: 1.8; color: #ccc; }
+  .flow .highlight { color: #7c4dff; }
+  .flow .service { color: #fff; font-weight: 600; }
+
+  /* Billing table */
+  .billing { width: 100%; border-collapse: collapse; }
+  .billing th { text-align: left; color: #9e9e9e; font-size: 13px; font-weight: 400; padding: 8px; border-bottom: 1px solid #2a2a4a; text-transform: uppercase; letter-spacing: 1px; }
+  .billing td { padding: 10px 8px; }
+  .billing .amount { color: #00e676; font-weight: 600; font-size: 16px; }
+  .billing .total-row td { border-top: 1px solid #2a2a4a; padding-top: 14px; }
+  .billing .total-amount { color: #ffd740; font-weight: 700; font-size: 20px; }
+  .billing .rate { color: #9e9e9e; font-size: 14px; }
+  .billing code { background: #2a2a4a; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #b0bec5; }
+
+  /* Metrics */
+  .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+  .metric { text-align: center; }
+  .metric .value { font-size: 24px; font-weight: 700; color: #00e676; }
+  .metric .label { font-size: 12px; color: #9e9e9e; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Footer */
+  .footer { text-align: center; color: #555; font-size: 13px; margin-top: 30px; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .header { flex-direction: column; text-align: center; gap: 8px; }
+    .metrics { grid-template-columns: repeat(3, 1fr); }
+    .services .desc { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>&#x2705; ALL TESTS PASSED</h1>
+    <span>AgentNext Platform</span>
+  </div>
+
+  <div class="card">
+    <div class="section-title">SERVICES (8/8)</div>
+    <table class="services">
+      <tr><td class="icon">&#x2705;</td><td class="name">AgentFlow</td><td class="desc">AI Workflow Builder</td><td class="port">:7860</td></tr>
+      <tr><td class="icon">&#x2705;</td><td class="name">LLM Gateway</td><td class="desc">Unified LLM Proxy</td><td class="port">:4000</td></tr>
+      <tr><td class="icon">&#x2705;</td><td class="name">ObserveLLM</td><td class="desc">LLM Tracing &amp; Observability</td><td class="port">:3150</td></tr>
+      <tr><td class="icon">&#x2705;</td><td class="name">LocalLLM</td><td class="desc">Local Model Inference</td><td class="port">:11434</td></tr>
+      <tr><td class="icon">&#x2705;</td><td class="name">Billing</td><td class="desc">Usage-Based Metering &amp; Invoicing</td><td class="port">:3201</td></tr>
+      <tr><td class="icon">&#x2705;</td><td class="name">Billing API</td><td class="desc">Events &amp; Subscriptions</td><td class="port">:3200</td></tr>
+      <tr><td class="icon">&#x2705;</td><td class="name">Billing Bridge</td><td class="desc">ObserveLLM &rarr; Billing Metering</td><td class="port">:8090</td></tr>
+      <tr><td class="icon">&#x2705;</td><td class="name">Mail Server</td><td class="desc">Email (SMTP/IMAP)</td><td class="port">:4500</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="section-title">END-TO-END FLOW</div>
+    <div class="flow">
+      <span class="service">User</span> &rarr; <span class="service">AgentFlow</span> &rarr; <span class="service">LLM Gateway</span> &rarr; <span class="service">LocalLLM</span> / Claude / OpenAI<br>
+      <span class="highlight">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&darr;</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="service">ObserveLLM</span> &rarr; <span class="service">Billing Bridge</span> &rarr; <span class="service">Billing</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">BILLING SUMMARY</div>
+    <table class="billing">
+      <thead>
+        <tr><th>Metric</th><th>Code</th><th>Usage</th><th>Rate</th><th>Amount</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>LLM Tokens</td>
+          <td><code>llm_tokens</code></td>
+          <td>870</td>
+          <td class="rate">$0.0001/token</td>
+          <td class="amount">$0.087</td>
+        </tr>
+        <tr>
+          <td>API Calls</td>
+          <td><code>api_calls</code></td>
+          <td>4</td>
+          <td class="rate">$0.01/call</td>
+          <td class="amount">$0.040</td>
+        </tr>
+        <tr>
+          <td>Workflow Runs</td>
+          <td><code>workflow_runs</code></td>
+          <td>3</td>
+          <td class="rate">$0.05/run</td>
+          <td class="amount">$0.150</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="3"></td>
+          <td><strong>Total</strong></td>
+          <td class="total-amount">$0.277</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="section-title">PLATFORM METRICS</div>
+    <div class="metrics">
+      <div class="metric"><div class="value">25</div><div class="label">LLM Calls</div></div>
+      <div class="metric"><div class="value">447</div><div class="label">Tokens Consumed</div></div>
+      <div class="metric"><div class="value">870</div><div class="label">Tokens Billed</div></div>
+      <div class="metric"><div class="value">16</div><div class="label">Billing Events</div></div>
+      <div class="metric"><div class="value"><span style="color:#ffd740">$0.277</span></div><div class="label">Billed</div></div>
+    </div>
+  </div>
+
+  <div class="footer">AgentNext Platform &bull; unboxd.cloud &bull; 2026-03-28</div>
+
+</div>
+</body>
+</html>

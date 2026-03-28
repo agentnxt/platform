@@ -1,0 +1,371 @@
+##############################################################################
+# AgentNext Platform — Complete AI Platform Stack
+#
+# Services: AgentFlow + LLM Gateway + ObserveLLM + LocalLLM + Billing
+#
+# ══════════════════════════════════════════════════════════════════════════
+# REQUIRED — must be set before deployment
+# ══════════════════════════════════════════════════════════════════════════
+#   LITELLM_MASTER_KEY   – LLM Gateway admin key   (generate: openssl rand -hex 16)
+#   LANGFUSE_PUBLIC_KEY  – ObserveLLM public key    (get from ObserveLLM UI after signup)
+#   LANGFUSE_SECRET_KEY  – ObserveLLM secret key    (get from ObserveLLM UI after signup)
+#   LAGO_SECRET_KEY_BASE – Billing Rails secret     (generate: openssl rand -hex 64)
+#   LAGO_RSA_PRIVATE_KEY – Billing webhook key      (generate: openssl genrsa 2048 | base64)
+#   LAGO_ENCRYPTION_PRIMARY_KEY       – 32 char hex (generate: openssl rand -hex 16)
+#   LAGO_ENCRYPTION_DETERMINISTIC_KEY – 32 char hex (generate: openssl rand -hex 16)
+#   LAGO_ENCRYPTION_KEY_DERIVATION_SALT – 32 char hex (generate: openssl rand -hex 16)
+#
+# ── Optional — sensible defaults provided ────────────────────────────────
+#
+#   AgentFlow
+#   AGENTFLOW_PORT               – Host port              (default: 7860)
+#   LANGFLOW_AUTO_LOGIN          – Skip login              (default: true)
+#   LANGFLOW_SUPERUSER           – Admin username           (default: admin)
+#   LANGFLOW_SUPERUSER_PASSWORD  – Admin password           (default: admin)
+#
+#   LLM Gateway
+#   GATEWAY_PORT                 – Host port              (default: 4000)
+#   LITELLM_UI_USERNAME          – Dashboard user          (default: admin)
+#   LITELLM_UI_PASSWORD          – Dashboard password      (default: admin)
+#   OPENAI_API_KEY               – OpenAI key for proxy
+#   ANTHROPIC_API_KEY            – Claude key for proxy
+#   GEMINI_API_KEY               – Gemini key for proxy
+#
+#   ObserveLLM
+#   OBSERVELLM_PORT              – Host port              (default: 3150)
+#   LANGFUSE_NEXT_AUTH_SECRET    – NextAuth secret         (default: changeme)
+#   LANGFUSE_SALT                – Encryption salt          (default: changeme)
+#
+#   LocalLLM
+#   LOCALLLM_PORT                – Host port              (default: 11434)
+#
+#   Billing
+#   BILLING_API_PORT             – API host port           (default: 3200)
+#   BILLING_FRONT_PORT           – Frontend host port      (default: 3201)
+#   LAGO_API_KEY                 – Billing API key          (set after Billing setup)
+#
+#   Billing Bridge
+#   BRIDGE_PORT                  – Host port              (default: 8090)
+#
+#   Database
+#   POSTGRES_USER                – DB user                 (default: platform)
+#   POSTGRES_PASSWORD            – DB password             (default: platform)
+#
+#   Mail Server
+#   MAIL_PORT                    – HTTPS admin port        (default: 4500)
+#   STALWART_HOSTNAME            – Mail FQDN               (default: mail.example.com)
+#   ADMIN_SECRET                 – Mail admin password      (default: auto-generated)
+##############################################################################
+
+services:
+  # ══════════════════════════════════════════════════════════════════════
+  # AgentFlow — AI Workflow Builder (Langflow)
+  # ══════════════════════════════════════════════════════════════════════
+  agentflow:
+    image: langflowai/langflow:latest
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "${AGENTFLOW_PORT:-7860}:7860"
+    environment:
+      - LANGFLOW_DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/agentflow
+      - LANGFLOW_CONFIG_DIR=/app/langflow
+      - LANGFLOW_AUTO_LOGIN=${LANGFLOW_AUTO_LOGIN:-true}
+      - LANGFLOW_SUPERUSER=${LANGFLOW_SUPERUSER:-admin}
+      - LANGFLOW_SUPERUSER_PASSWORD=${LANGFLOW_SUPERUSER_PASSWORD:-admin}
+      - LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-}
+      - LANGFLOW_LOG_LEVEL=${LANGFLOW_LOG_LEVEL:-info}
+      - OPENAI_API_BASE=http://gateway:4000
+      - OPENAI_API_KEY=${LITELLM_MASTER_KEY:-sk-master}
+      - OLLAMA_BASE_URL=http://localllm:11434
+    volumes:
+      - agentflow_data:/app/langflow
+    depends_on:
+      db:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  # ══════════════════════════════════════════════════════════════════════
+  # LLM Gateway — Unified LLM Proxy (LiteLLM)
+  # ══════════════════════════════════════════════════════════════════════
+  gateway:
+    image: ghcr.io/berriai/litellm:main-latest
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-4000}:4000"
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-master}
+      - UI_USERNAME=${LITELLM_UI_USERNAME:-admin}
+      - UI_PASSWORD=${LITELLM_UI_PASSWORD:-admin}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/gateway
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=http://observellm:3000
+      - STORE_MODEL_IN_DB=True
+    volumes:
+      - ./gateway/config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    depends_on:
+      db:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  # ══════════════════════════════════════════════════════════════════════
+  # ObserveLLM — LLM Tracing & Observability (Langfuse)
+  # ══════════════════════════════════════════════════════════════════════
+  observellm:
+    image: langfuse/langfuse:2
+    restart: unless-stopped
+    ports:
+      - "${OBSERVELLM_PORT:-3150}:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/observellm
+      - NEXTAUTH_URL=http://localhost:${OBSERVELLM_PORT:-3150}
+      - NEXTAUTH_SECRET=${LANGFUSE_NEXT_AUTH_SECRET:-changeme}
+      - SALT=${LANGFUSE_SALT:-changeme}
+    depends_on:
+      db:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  # ══════════════════════════════════════════════════════════════════════
+  # LocalLLM — Local Model Inference (Ollama)
+  # ══════════════════════════════════════════════════════════════════════
+  localllm:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "${LOCALLLM_PORT:-11434}:11434"
+    volumes:
+      - localllm_data:/root/.ollama
+    # Uncomment for GPU support (requires nvidia-container-toolkit)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Billing — Usage-Based Metering & Invoicing (Lago)
+  # ══════════════════════════════════════════════════════════════════════
+  billing-api:
+    image: getlago/api:v1.44.0
+    restart: unless-stopped
+    ports:
+      - "${BILLING_API_PORT:-3200}:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@billing-db:5432/billing
+      - REDIS_URL=redis://billing-redis:6379
+      - SECRET_KEY_BASE=${LAGO_SECRET_KEY_BASE:-changeme_generate_with_openssl_rand_hex_64}
+      - LAGO_RSA_PRIVATE_KEY=${LAGO_RSA_PRIVATE_KEY:-}
+      - LAGO_ENCRYPTION_PRIMARY_KEY=${LAGO_ENCRYPTION_PRIMARY_KEY:-changeme32charalphanumerickey12}
+      - LAGO_ENCRYPTION_DETERMINISTIC_KEY=${LAGO_ENCRYPTION_DETERMINISTIC_KEY:-changeme32charalphanumerickey34}
+      - LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT:-changeme32charalphanumerickey56}
+      - LAGO_API_URL=http://localhost:${BILLING_API_PORT:-3200}
+      - LAGO_FRONT_URL=http://localhost:${BILLING_FRONT_PORT:-3201}
+      - LAGO_PDF_URL=http://billing-pdf:3000
+      - LAGO_SIDEKIQ_WEB=true
+      - LAGO_DISABLE_SIGNUP=false
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+    depends_on:
+      billing-db:
+        condition: service_healthy
+      billing-redis:
+        condition: service_started
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  billing-front:
+    image: getlago/front:v1.44.0
+    restart: unless-stopped
+    ports:
+      - "${BILLING_FRONT_PORT:-3201}:80"
+    environment:
+      - API_URL=http://localhost:${BILLING_API_PORT:-3200}
+      - APP_ENV=production
+    depends_on:
+      - billing-api
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+        compress: "true"
+
+  billing-worker:
+    image: getlago/api:v1.44.0
+    restart: unless-stopped
+    command: ["./scripts/start.worker.sh"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@billing-db:5432/billing
+      - REDIS_URL=redis://billing-redis:6379
+      - SECRET_KEY_BASE=${LAGO_SECRET_KEY_BASE:-changeme_generate_with_openssl_rand_hex_64}
+      - LAGO_RSA_PRIVATE_KEY=${LAGO_RSA_PRIVATE_KEY:-}
+      - LAGO_ENCRYPTION_PRIMARY_KEY=${LAGO_ENCRYPTION_PRIMARY_KEY:-changeme32charalphanumerickey12}
+      - LAGO_ENCRYPTION_DETERMINISTIC_KEY=${LAGO_ENCRYPTION_DETERMINISTIC_KEY:-changeme32charalphanumerickey34}
+      - LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT:-changeme32charalphanumerickey56}
+      - LAGO_API_URL=http://localhost:${BILLING_API_PORT:-3200}
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+    depends_on:
+      - billing-api
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  billing-clock:
+    image: getlago/api:v1.44.0
+    restart: unless-stopped
+    command: ["./scripts/start.clock.sh"]
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@billing-db:5432/billing
+      - REDIS_URL=redis://billing-redis:6379
+      - SECRET_KEY_BASE=${LAGO_SECRET_KEY_BASE:-changeme_generate_with_openssl_rand_hex_64}
+      - LAGO_ENCRYPTION_PRIMARY_KEY=${LAGO_ENCRYPTION_PRIMARY_KEY:-changeme32charalphanumerickey12}
+      - LAGO_ENCRYPTION_DETERMINISTIC_KEY=${LAGO_ENCRYPTION_DETERMINISTIC_KEY:-changeme32charalphanumerickey34}
+      - LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT:-changeme32charalphanumerickey56}
+      - LAGO_API_URL=http://localhost:${BILLING_API_PORT:-3200}
+      - RAILS_ENV=production
+    depends_on:
+      - billing-api
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+        compress: "true"
+
+  billing-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  billing-pdf:
+    image: getlago/lago-gotenberg:7.8.2
+    restart: unless-stopped
+
+  billing-db:
+    image: getlago/postgres-partman:15.0-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-platform}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-platform}
+      - POSTGRES_DB=billing
+      - PGDATA=/data/postgres
+    volumes:
+      - billing_db_data:/data/postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Billing Bridge — ObserveLLM → Billing Metering
+  # ══════════════════════════════════════════════════════════════════════
+  billing-bridge:
+    image: python:3.12-slim
+    restart: unless-stopped
+    ports:
+      - "${BRIDGE_PORT:-8090}:8090"
+    environment:
+      - LAGO_API_URL=http://billing-api:3000
+      - LAGO_API_KEY=${LAGO_API_KEY:-}
+      - BRIDGE_PORT=8090
+    volumes:
+      - ./bridge/bridge.py:/app/bridge.py:ro
+    command: ["python3", "-u", "/app/bridge.py"]
+    depends_on:
+      - billing-api
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Mail Server (Stalwart)
+  # ══════════════════════════════════════════════════════════════════════
+  mailserver:
+    image: stalwartlabs/stalwart:latest
+    restart: unless-stopped
+    ports:
+      - "${MAIL_PORT:-4500}:443"
+      - "25:25"
+      - "587:587"
+      - "465:465"
+      - "143:143"
+      - "993:993"
+      - "110:110"
+      - "995:995"
+      - "4190:4190"
+    environment:
+      - STALWART_HOSTNAME=${STALWART_HOSTNAME:-mail.example.com}
+      - ADMIN_SECRET=${ADMIN_SECRET:-}
+    volumes:
+      - mailserver_data:/opt/stalwart
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Shared Database (PostgreSQL)
+  # ══════════════════════════════════════════════════════════════════════
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-platform}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-platform}
+    volumes:
+      - ./db/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+volumes:
+  agentflow_data:
+  localllm_data:
+  mailserver_data:
+  db_data:
+  billing_db_data:

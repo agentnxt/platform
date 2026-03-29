@@ -1,7 +1,7 @@
 ##############################################################################
-# AgentNext Platform — Complete AI Platform Stack
+# AgentNext Platform — Complete AI Platform Stack (Hardened)
 #
-# Services: AgentFlow + LLM Gateway + ObserveLLM + LocalLLM + Billing
+# Services: AgentFlow + LLM Gateway + ObserveLLM + LocalLLM + Billing + Auth
 #
 # ══════════════════════════════════════════════════════════════════════════
 # REQUIRED — must be set before deployment
@@ -63,6 +63,32 @@
 #   ADMIN_SECRET                 – Mail admin password      (default: auto-generated)
 ##############################################################################
 
+# ── Shared hardening defaults ────────────────────────────────────────────
+x-hardened: &hardened
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      compress: "true"
+
+x-internal-only: &internal-only
+  <<: *hardened
+  networks:
+    - internal
+
+# ── Networks ─────────────────────────────────────────────────────────────
+networks:
+  frontend:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true
+
 services:
   # ══════════════════════════════════════════════════════════════════════
   # AgentFlow — AI Workflow Builder (Langflow)
@@ -71,6 +97,9 @@ services:
     image: langflowai/langflow:latest
     pull_policy: always
     restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
     ports:
       - "${AGENTFLOW_PORT:-7860}:7860"
     environment:
@@ -86,15 +115,18 @@ services:
       - OLLAMA_BASE_URL=http://localllm:11434
     volumes:
       - agentflow_data:/app/langflow
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 512M
     depends_on:
       db:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
 
   # ══════════════════════════════════════════════════════════════════════
   # LLM Gateway — Unified LLM Proxy (LiteLLM)
@@ -102,6 +134,9 @@ services:
   gateway:
     image: ghcr.io/berriai/litellm:main-latest
     restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
     ports:
       - "${GATEWAY_PORT:-4000}:4000"
     environment:
@@ -119,15 +154,18 @@ services:
     volumes:
       - ./gateway/config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000"]
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 256M
     depends_on:
       db:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
 
   # ══════════════════════════════════════════════════════════════════════
   # ObserveLLM — LLM Tracing & Observability (Langfuse)
@@ -135,6 +173,9 @@ services:
   observellm:
     image: langfuse/langfuse:2
     restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
     ports:
       - "${OBSERVELLM_PORT:-3150}:3000"
     environment:
@@ -142,15 +183,18 @@ services:
       - NEXTAUTH_URL=http://localhost:${OBSERVELLM_PORT:-3150}
       - NEXTAUTH_SECRET=${LANGFUSE_NEXT_AUTH_SECRET:-changeme}
       - SALT=${LANGFUSE_SALT:-changeme}
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 128M
     depends_on:
       db:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
 
   # ══════════════════════════════════════════════════════════════════════
   # LocalLLM — Local Model Inference (Ollama)
@@ -158,10 +202,25 @@ services:
   localllm:
     image: ollama/ollama:latest
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_RESOURCE
     ports:
       - "${LOCALLLM_PORT:-11434}:11434"
     volumes:
       - localllm_data:/root/.ollama
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 512M
     # Uncomment for GPU support (requires nvidia-container-toolkit)
     # deploy:
     #   resources:
@@ -178,11 +237,14 @@ services:
         compress: "true"
 
   # ══════════════════════════════════════════════════════════════════════
-  # Billing — Usage-Based Metering & Invoicing (Lago)
+  # Billing API — Usage-Based Metering (Lago)
   # ══════════════════════════════════════════════════════════════════════
   billing-api:
     image: getlago/api:v1.44.0
     restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
     ports:
       - "${BILLING_API_PORT:-3200}:3000"
     environment:
@@ -200,38 +262,48 @@ services:
       - LAGO_DISABLE_SIGNUP=false
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 256M
     depends_on:
       billing-db:
         condition: service_healthy
       billing-redis:
         condition: service_started
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
 
   billing-front:
     image: getlago/front:v1.44.0
     restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
     ports:
       - "${BILLING_FRONT_PORT:-3201}:80"
     environment:
       - API_URL=http://localhost:${BILLING_API_PORT:-3200}
       - APP_ENV=production
+    networks:
+      - frontend
     depends_on:
       - billing-api
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-        compress: "true"
 
   billing-worker:
     image: getlago/api:v1.44.0
     restart: unless-stopped
+    <<: *internal-only
+    cap_add:
+      - NET_BIND_SERVICE
     command: ["./scripts/start.worker.sh"]
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@billing-db:5432/billing
@@ -244,18 +316,19 @@ services:
       - LAGO_API_URL=http://localhost:${BILLING_API_PORT:-3200}
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     depends_on:
       - billing-api
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
 
   billing-clock:
     image: getlago/api:v1.44.0
     restart: unless-stopped
+    <<: *internal-only
+    cap_add:
+      - NET_BIND_SERVICE
     command: ["./scripts/start.clock.sh"]
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@billing-db:5432/billing
@@ -266,26 +339,45 @@ services:
       - LAGO_ENCRYPTION_KEY_DERIVATION_SALT=${LAGO_ENCRYPTION_KEY_DERIVATION_SALT:-changeme32charalphanumerickey56}
       - LAGO_API_URL=http://localhost:${BILLING_API_PORT:-3200}
       - RAILS_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     depends_on:
       - billing-api
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "2"
-        compress: "true"
 
   billing-redis:
     image: redis:7-alpine
     restart: unless-stopped
+    <<: *internal-only
+    read_only: true
+    tmpfs:
+      - /data
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   billing-pdf:
     image: getlago/lago-gotenberg:7.8.2
     restart: unless-stopped
+    <<: *internal-only
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   billing-db:
     image: getlago/postgres-partman:15.0-alpine
     restart: unless-stopped
+    <<: *internal-only
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-platform}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-platform}
@@ -293,6 +385,10 @@ services:
       - PGDATA=/data/postgres
     volumes:
       - billing_db_data:/data/postgres
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform}"]
       interval: 10s
@@ -305,6 +401,12 @@ services:
   billing-bridge:
     image: python:3.12-slim
     restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp
     ports:
       - "${BRIDGE_PORT:-8090}:8090"
     environment:
@@ -314,6 +416,13 @@ services:
     volumes:
       - ./bridge/bridge.py:/app/bridge.py:ro
     command: ["python3", "-u", "/app/bridge.py"]
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 128M
     depends_on:
       - billing-api
 
@@ -323,6 +432,9 @@ services:
   auth:
     image: svhd/logto:latest
     restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
     ports:
       - "${AUTH_PORT:-3301}:3001"
       - "${AUTH_ADMIN_PORT:-3302}:3002"
@@ -331,15 +443,18 @@ services:
       - DB_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/auth
       - ENDPOINT=${LOGTO_ENDPOINT:-http://localhost:3301}
       - ADMIN_ENDPOINT=${LOGTO_ADMIN_ENDPOINT:-http://localhost:3302}
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
     depends_on:
       db:
         condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
 
   # ══════════════════════════════════════════════════════════════════════
   # Mail Server (Stalwart)
@@ -347,6 +462,8 @@ services:
   mailserver:
     image: stalwartlabs/stalwart:latest
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "${MAIL_PORT:-4500}:443"
       - "25:25"
@@ -362,6 +479,14 @@ services:
       - ADMIN_SECRET=${ADMIN_SECRET:-}
     volumes:
       - mailserver_data:/opt/stalwart
+    networks:
+      - frontend
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -375,23 +500,30 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    <<: *internal-only
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-platform}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-platform}
     volumes:
       - ./db/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
       - db_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        compress: "true"
 
 volumes:
   agentflow_data:

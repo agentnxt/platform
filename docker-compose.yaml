@@ -1052,7 +1052,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1G
+        reservations:
+          memory: 256M
     depends_on:
       db:
         condition: service_healthy

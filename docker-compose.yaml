@@ -752,6 +752,10 @@ services:
     <<: *hardened
     cap_add:
       - NET_BIND_SERVICE
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
     ports:
       - "${SURREALDB_PORT:-8000}:8000"
     command: ["start", "--user", "root", "--pass", "${SURREALDB_PASSWORD:-surrealdb}", "file:/data/db.db"]

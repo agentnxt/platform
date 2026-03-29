@@ -743,6 +743,344 @@ services:
   # not a web service — no Dockerfile, no port. Referenced here for documentation.
   # Skills are loaded directly by Claude agents at runtime.
 
+  # ══════════════════════════════════════════════════════════════════════
+  # SurrealDB — Multi-model Decision Store (graph + doc + vector + temporal)
+  # ══════════════════════════════════════════════════════════════════════
+  surrealdb:
+    image: surrealdb/surrealdb:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${SURREALDB_PORT:-8000}:8000"
+    command: ["start", "--user", "root", "--pass", "${SURREALDB_PASSWORD:-surrealdb}", "file:/data/db.db"]
+    volumes:
+      - surrealdb_data:/data
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Camunda 7 — DMN Decision Engine + Cockpit + Tasklist
+  # ══════════════════════════════════════════════════════════════════════
+  camunda:
+    image: camunda/camunda-bpm-platform:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${CAMUNDA_PORT:-8083}:8080"
+    environment:
+      - DB_DRIVER=org.postgresql.Driver
+      - DB_URL=jdbc:postgresql://db:5432/camunda
+      - DB_USERNAME=${POSTGRES_USER:-platform}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-platform}
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ══════════════════════════════════════════════════════════════════════
+  # OPA — Open Policy Agent (Decision Governance)
+  # ══════════════════════════════════════════════════════════════════════
+  opa:
+    image: openpolicyagent/opa:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${OPA_PORT:-8181}:8181"
+    command: ["run", "--server", "--log-level", "info", "--log-format", "json"]
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Prometheus — Metrics Collection
+  # ══════════════════════════════════════════════════════════════════════
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Grafana — Unified Dashboards
+  # ══════════════════════════════════════════════════════════════════════
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    ports:
+      - "${GRAFANA_PORT:-3500}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SERVER_ROOT_URL=http://${SERVER_IP:-localhost}:${GRAFANA_PORT:-3500}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      - prometheus
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Evidently — ML Model Drift Detection & Monitoring UI
+  # ══════════════════════════════════════════════════════════════════════
+  evidently:
+    image: python:3.11-slim
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${EVIDENTLY_PORT:-8085}:8085"
+    command: >
+      bash -c "pip install evidently --quiet &&
+      python -m evidently.ui --workspace /data/workspace --host 0.0.0.0 --port 8085"
+    volumes:
+      - evidently_data:/data
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Marquez — OpenLineage / Decision Lineage
+  # ══════════════════════════════════════════════════════════════════════
+  marquez:
+    image: marquezproject/marquez:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${MARQUEZ_PORT:-5100}:5000"
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=${POSTGRES_USER:-platform}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-platform}
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      db:
+        condition: service_healthy
+
+  marquez-web:
+    image: marquezproject/marquez-web:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${MARQUEZ_WEB_PORT:-5101}:3000"
+    environment:
+      - MARQUEZ_HOST=marquez
+      - MARQUEZ_PORT=5000
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    depends_on:
+      - marquez
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Argilla — Human Feedback & RLHF (v2, PostgreSQL-backed)
+  # ══════════════════════════════════════════════════════════════════════
+  argilla:
+    image: argilla/argilla-server:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${ARGILLA_PORT:-6900}:6900"
+    environment:
+      - ARGILLA_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/argilla
+      - ARGILLA_AUTH_SECRET_KEY=${ARGILLA_SECRET_KEY:-changeme_argilla_secret_32chars__}
+      - USERNAME=argilla
+      - PASSWORD=${ARGILLA_PASSWORD:-admin}
+      - API_KEY=${ARGILLA_API_KEY:-argilla.apikey}
+    volumes:
+      - argilla_data:/home/argilla
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ══════════════════════════════════════════════════════════════════════
+  # MLflow — Model Registry & Experiment Tracking
+  # ══════════════════════════════════════════════════════════════════════
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${MLFLOW_PORT:-5001}:5000"
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/mlflow
+      --default-artifact-root /mlflow/artifacts
+    volumes:
+      - mlflow_data:/mlflow/artifacts
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Temporal — Durable Workflow / Decision Execution
+  # ══════════════════════════════════════════════════════════════════════
+  temporal:
+    image: temporalio/auto-setup:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${TEMPORAL_PORT:-7233}:7233"
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_SEEDS=db
+      - POSTGRES_USER=${POSTGRES_USER:-platform}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD:-platform}
+      - SKIP_DB_CREATE=true
+      - DEFAULT_NAMESPACE_RETENTION=72h
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    depends_on:
+      db:
+        condition: service_healthy
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${TEMPORAL_UI_PORT:-8088}:8080"
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://${SERVER_IP:-localhost}:${TEMPORAL_UI_PORT:-8088}
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    depends_on:
+      - temporal
+
+  # ══════════════════════════════════════════════════════════════════════
+  # NATS JetStream — Messaging Fabric
+  # ══════════════════════════════════════════════════════════════════════
+  nats:
+    image: nats:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${NATS_PORT:-4222}:4222"
+      - "${NATS_MONITOR_PORT:-8222}:8222"
+    command: ["--jetstream", "--http_port", "8222", "--store_dir", "/data"]
+    volumes:
+      - nats_data:/data
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
 volumes:
   agentflow_data:
   localllm_data:
@@ -752,3 +1090,10 @@ volumes:
   redis_data:
   qdrant_data:
   agentstudio_db_data:
+  surrealdb_data:
+  prometheus_data:
+  grafana_data:
+  evidently_data:
+  argilla_data:
+  mlflow_data:
+  nats_data:

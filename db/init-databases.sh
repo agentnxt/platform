@@ -8,6 +8,12 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
     CREATE DATABASE observellm;
     CREATE DATABASE auth;
     CREATE DATABASE agentcrew;
+    CREATE DATABASE camunda;
+    CREATE DATABASE marquez;
+    CREATE DATABASE mlflow;
+    CREATE DATABASE argilla;
+    CREATE DATABASE temporal;
+    CREATE DATABASE temporal_visibility;
 EOSQL
 
-echo "Platform databases created: agentflow, gateway, observellm, auth, agentcrew"
+echo "Platform databases created: agentflow, gateway, observellm, auth, agentcrew, camunda, marquez, mlflow, argilla, temporal, temporal_visibility"

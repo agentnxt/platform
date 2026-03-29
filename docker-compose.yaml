@@ -732,14 +732,18 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@agentstudio-db:5432/simstudio
       - REDIS_URL=redis://redis:6379/2
       - BETTER_AUTH_SECRET=${AGENTSTUDIO_AUTH_SECRET:-changeme_generate_openssl_rand_hex_32}
-      - BETTER_AUTH_URL=http://${SERVER_IP:-localhost}:${AGENTSTUDIO_PORT:-3400}
+      - BETTER_AUTH_URL=https://agentstudio.agnxxt.com
       - ENCRYPTION_KEY=${AGENTSTUDIO_ENCRYPTION_KEY:-changeme_32chars_exactly_here_ok_}
       - API_ENCRYPTION_KEY=${AGENTSTUDIO_API_KEY:-changeme_32chars_api_key_here_ok__}
       - INTERNAL_API_SECRET=${AGENTSTUDIO_INTERNAL_SECRET:-changeme_internal_secret_key_here}
-      - NEXT_PUBLIC_APP_URL=http://${SERVER_IP:-localhost}:${AGENTSTUDIO_PORT:-3400}
-      - NEXT_PUBLIC_SOCKET_URL=http://${SERVER_IP:-localhost}:${AGENTSTUDIO_REALTIME_PORT:-3401}
+      - NEXT_PUBLIC_APP_URL=https://agentstudio.agnxxt.com
+      - NEXT_PUBLIC_SOCKET_URL=https://agentstudio-realtime.agnxxt.com
       - SOCKET_SERVER_URL=http://agentstudio-realtime:3002
       - OLLAMA_URL=http://localllm:11434
+      # Traces → ObserveLLM (Langfuse)
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_BASEURL=http://observellm:3000
     networks:
       - frontend
       - internal
@@ -769,7 +773,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@agentstudio-db:5432/simstudio
       - REDIS_URL=redis://redis:6379/2
       - INTERNAL_API_SECRET=${AGENTSTUDIO_INTERNAL_SECRET:-changeme_internal_secret_key_here}
-      - NEXT_PUBLIC_APP_URL=http://${SERVER_IP:-localhost}:${AGENTSTUDIO_PORT:-3400}
+      - NEXT_PUBLIC_APP_URL=https://agentstudio.agnxxt.com
       - PORT=3002
     networks:
       - frontend

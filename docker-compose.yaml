@@ -442,6 +442,7 @@ services:
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - POLL_INTERVAL=30
+      - LAGO_PLAN_CODE=standard
     volumes:
       - ./bridge/bridge.py:/app/bridge.py:ro
     command: ["python3", "-u", "/app/bridge.py"]

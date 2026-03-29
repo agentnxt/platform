@@ -29,6 +29,7 @@ log = logging.getLogger("billing-bridge")
 
 LAGO_API_URL  = os.environ.get("LAGO_API_URL", "http://billing-api:3000")
 LAGO_API_KEY  = os.environ.get("LAGO_API_KEY", "")
+LAGO_PLAN_CODE = os.environ.get("LAGO_PLAN_CODE", "standard")   # plan to auto-assign new users
 
 LANGFUSE_URL        = os.environ.get("LANGFUSE_URL", "http://observellm:3000")
 LANGFUSE_PUBLIC_KEY = os.environ.get("LANGFUSE_PUBLIC_KEY", "")
@@ -40,6 +41,67 @@ AGENT_TAGS = {"agentstudio", "agent_run", "simstudio"}
 
 
 # ── Lago ─────────────────────────────────────────────────────────────────────
+
+_provisioned: set = set()   # in-memory cache of user IDs with active subscriptions
+
+
+def _lago_request(method, path, body=None):
+    """Make an authenticated request to the Lago API."""
+    req = Request(
+        f"{LAGO_API_URL}{path}",
+        json.dumps(body).encode() if body else None,
+        method=method,
+        headers={
+            "Authorization": f"Bearer {LAGO_API_KEY}",
+            "Content-Type": "application/json",
+        },
+    )
+    return urlopen(req, timeout=10)
+
+
+def ensure_subscription(uid: str):
+    """
+    Lazy-provision a Lago customer + subscription for a new user.
+
+    On first encounter of a userId:
+      1. Create/upsert a Lago Customer  (external_id = uid)
+      2. Create a Subscription          (customer → standard plan)
+
+    Idempotent — Lago silently ignores duplicate customer creates
+    and the bridge deduplicates via _provisioned set.
+    """
+    if not LAGO_API_KEY or uid in _provisioned:
+        return
+
+    try:
+        # 1. Upsert customer
+        _lago_request("POST", "/api/v1/customers", {
+            "customer": {
+                "external_id": uid,
+                "name": uid,
+            }
+        })
+
+        # 2. Create subscription (idempotent via external_id + plan_code uniqueness)
+        _lago_request("POST", "/api/v1/subscriptions", {
+            "subscription": {
+                "external_customer_id": uid,
+                "external_id": f"sub-{uid}",
+                "plan_code": LAGO_PLAN_CODE,
+                "billing_time": "anniversary",
+            }
+        })
+
+        _provisioned.add(uid)
+        log.info("provisioned Lago customer+subscription for user=%s plan=%s", uid, LAGO_PLAN_CODE)
+
+    except URLError as e:
+        # 422 = already exists — treat as success
+        if hasattr(e, "code") and e.code == 422:
+            _provisioned.add(uid)
+        else:
+            log.error("failed to provision subscription for user=%s: %s", uid, e)
+
 
 def send_event(tid, sub, code, val, props=None):
     """Send a usage event to Lago."""
@@ -76,10 +138,13 @@ def send_event(tid, sub, code, val, props=None):
 def process_trace(trace):
     """Extract usage from a Langfuse trace and send billing events to Lago."""
     tid  = trace.get("id", "unknown")
-    uid  = trace.get("userId", "default")
+    uid  = trace.get("userId") or "default"
     wf   = trace.get("name", "unknown")
     tags = set(trace.get("tags") or [])
     observations = trace.get("observations", [])
+
+    # Auto-provision customer + subscription on first encounter
+    ensure_subscription(uid)
 
     # Token count — sum across all LLM observations in this trace
     tokens = sum(

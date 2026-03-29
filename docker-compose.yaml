@@ -521,9 +521,252 @@ services:
       timeout: 5s
       retries: 5
 
+  # ══════════════════════════════════════════════════════════════════════
+  # Shared Redis — used by AgentStudio + future services
+  # ══════════════════════════════════════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    <<: *internal-only
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Vector DB — Qdrant
+  # ══════════════════════════════════════════════════════════════════════
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Content Agent — Agentic Content Publishing (FastAPI + RAG)
+  # ══════════════════════════════════════════════════════════════════════
+  content-agent:
+    image: python:3.12-slim
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${CONTENT_AGENT_PORT:-8100}:8100"
+    environment:
+      - OLLAMA_URL=http://localllm:11434
+      - QDRANT_URL=http://qdrant:6333
+      - LITELLM_URL=http://gateway:4000
+      - AGENT_PORT=8100
+    volumes:
+      - ./content-agent/server.py:/app/server.py:ro
+    working_dir: /app
+    command: >
+      bash -c "pip install fastapi uvicorn httpx --quiet &&
+      python -u server.py"
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      - localllm
+      - qdrant
+      - gateway
+
+  # ══════════════════════════════════════════════════════════════════════
+  # AgentStudio — AI Workflow Builder (Sim.ai / SimStudio)
+  # ══════════════════════════════════════════════════════════════════════
+  agentstudio-db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    <<: *internal-only
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-platform}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-platform}
+      - POSTGRES_DB=simstudio
+      - PGDATA=/data/postgres
+    volumes:
+      - agentstudio_db_data:/data/postgres
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  agentstudio-migrate:
+    image: ghcr.io/simstudioai/migrations:latest
+    restart: "no"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@agentstudio-db:5432/simstudio
+    networks:
+      - internal
+    depends_on:
+      agentstudio-db:
+        condition: service_healthy
+
+  agentstudio:
+    image: ghcr.io/simstudioai/simstudio:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${AGENTSTUDIO_PORT:-3400}:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@agentstudio-db:5432/simstudio
+      - REDIS_URL=redis://redis:6379/2
+      - BETTER_AUTH_SECRET=${AGENTSTUDIO_AUTH_SECRET:-changeme_generate_openssl_rand_hex_32}
+      - BETTER_AUTH_URL=http://${SERVER_IP:-localhost}:${AGENTSTUDIO_PORT:-3400}
+      - ENCRYPTION_KEY=${AGENTSTUDIO_ENCRYPTION_KEY:-changeme_32chars_exactly_here_ok_}
+      - API_ENCRYPTION_KEY=${AGENTSTUDIO_API_KEY:-changeme_32chars_api_key_here_ok__}
+      - INTERNAL_API_SECRET=${AGENTSTUDIO_INTERNAL_SECRET:-changeme_internal_secret_key_here}
+      - NEXT_PUBLIC_APP_URL=http://${SERVER_IP:-localhost}:${AGENTSTUDIO_PORT:-3400}
+      - NEXT_PUBLIC_SOCKET_URL=http://${SERVER_IP:-localhost}:${AGENTSTUDIO_REALTIME_PORT:-3401}
+      - SOCKET_SERVER_URL=http://agentstudio-realtime:3002
+      - OLLAMA_URL=http://localllm:11434
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    depends_on:
+      agentstudio-db:
+        condition: service_healthy
+      agentstudio-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+
+  agentstudio-realtime:
+    image: ghcr.io/simstudioai/realtime:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${AGENTSTUDIO_REALTIME_PORT:-3401}:3002"
+    environment:
+      - REDIS_URL=redis://redis:6379/2
+      - INTERNAL_API_SECRET=${AGENTSTUDIO_INTERNAL_SECRET:-changeme_internal_secret_key_here}
+      - PORT=3002
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      - redis
+      - agentstudio
+
+  # ══════════════════════════════════════════════════════════════════════
+  # AgentCrew — CrewAI Studio (community UI for CrewAI agents)
+  # ══════════════════════════════════════════════════════════════════════
+  agentcrew:
+    build:
+      context: https://github.com/strnad/CrewAI-Studio.git
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${AGENTCREW_PORT:-3410}:8501"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-platform}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-platform}
+      - POSTGRES_DB=agentcrew
+      - POSTGRES_HOST=db
+      - OLLAMA_URL=http://localllm:11434
+      - OPENAI_API_KEY=${LITELLM_MASTER_KEY:-sk-master}
+      - OPENAI_API_BASE=http://gateway:4000/v1
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ══════════════════════════════════════════════════════════════════════
+  # AgentSkills — Skills Catalog & MCP Registry (agentnxxt/agentskills)
+  # ══════════════════════════════════════════════════════════════════════
+  agentskills:
+    build:
+      context: https://github.com/agentnxxt/agentskills.git
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${AGENTSKILLS_PORT:-3420}:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/agentskills
+      - OPENAI_API_BASE=http://gateway:4000/v1
+      - OPENAI_API_KEY=${LITELLM_MASTER_KEY:-sk-master}
+      - NODE_ENV=production
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   agentflow_data:
   localllm_data:
   mailserver_data:
   db_data:
   billing_db_data:
+  redis_data:
+  qdrant_data:
+  agentstudio_db_data:

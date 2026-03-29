@@ -18,6 +18,8 @@ RUN uv pip install --system fastapi uvicorn[standard] httpx pydantic pydantic-se
 COPY apps/content-api/src ./src
 COPY packages/agents/src/agents ./src/agents
 
+ENV PYTHONPATH=/app/src
+
 EXPOSE 8100
 
-CMD ["uvicorn", "content_api.main:app", "--host", "0.0.0.0", "--port", "8100", "--app-dir", "src"]
+CMD ["uvicorn", "content_api.main:app", "--host", "0.0.0.0", "--port", "8100"]

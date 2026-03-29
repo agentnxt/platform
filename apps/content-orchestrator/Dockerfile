@@ -15,6 +15,8 @@ RUN uv pip install --system temporalio fastapi uvicorn[standard] httpx pydantic
 COPY apps/content-orchestrator/src ./src
 COPY packages/agents/src/agents ./src/agents
 
+ENV PYTHONPATH=/app/src
+
 EXPOSE 8200
 
 CMD ["python", "-m", "orchestrator.main"]

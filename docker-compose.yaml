@@ -745,6 +745,10 @@ services:
       - NEXT_PUBLIC_SOCKET_URL=https://agentstudio-realtime.agnxxt.com
       - SOCKET_SERVER_URL=http://agentstudio-realtime:3002
       - OLLAMA_URL=http://localllm:11434
+      # Open source models route through LLM gateway (LiteLLM → Ollama)
+      # Cloud models (OpenAI, Anthropic) are configured per-user in SimStudio UI
+      - OPENAI_API_BASE=http://gateway:4000/v1
+      - OPENAI_API_KEY=${LITELLM_MASTER_KEY:-sk-master}
       # Traces → ObserveLLM (Langfuse)
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
@@ -764,6 +768,8 @@ services:
       agentstudio-migrate:
         condition: service_completed_successfully
       redis:
+        condition: service_started
+      gateway:
         condition: service_started
 
   agentstudio-realtime:

@@ -176,6 +176,9 @@ services:
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_HOST=http://observellm:3000
       - STORE_MODEL_IN_DB=True
+      - LAGO_API_BASE=http://billing-api:3000
+      - LAGO_API_KEY=${LAGO_API_KEY:-}
+      - LAGO_LITELLM_EVENT_NAME=llm_tokens
     volumes:
       - ./gateway/config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000"]

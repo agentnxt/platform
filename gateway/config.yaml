@@ -1,6 +1,7 @@
 litellm_settings:
   success_callback:
     - langfuse
+    - lago
   failure_callback:
     - langfuse
   langfuse_public_key: os.environ/LANGFUSE_PUBLIC_KEY

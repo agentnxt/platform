@@ -4,11 +4,13 @@ AgentNext Billing Bridge — ObserveLLM → Billing Metering
 Receives trace webhooks from ObserveLLM (Langfuse), extracts usage metrics,
 and sends billing events to Billing (Lago) API.
 
-Billable metrics:
-  - llm_tokens      : total tokens (input + output) per trace
+Billable metrics (handled here):
   - api_calls       : 1 per trace (each workflow execution)
   - workflow_runs   : 1 per unique workflow run
   - agent_runs      : 1 per AgentStudio agent execution
+
+Note: llm_tokens are billed directly by the LLM Gateway (LiteLLM → Lago)
+using exact token counts from provider responses. Do NOT bill tokens here.
 """
 
 import os
@@ -65,23 +67,14 @@ def process_trace(trace):
     uid  = trace.get("userId", "default")
     wf   = trace.get("name", "unknown")
     tags = set(trace.get("tags") or [])
-    observations = trace.get("observations", [])
 
-    tokens = sum(
-        (o.get("usage", {}).get("input", 0) or 0)
-        + (o.get("usage", {}).get("output", 0) or 0)
-        for o in observations
-    )
-
-    if tokens > 0:
-        send_event(f"{tid}-tok", uid, "llm_tokens", tokens, {"workflow": wf})
-
+    # llm_tokens are billed by the LLM Gateway (LiteLLM) directly — not here.
     send_event(f"{tid}-api", uid, "api_calls", 1, {"workflow": wf})
-    send_event(f"{tid}-wf",  uid, "workflow_runs", 1, {"workflow": wf, "tokens": str(tokens)})
+    send_event(f"{tid}-wf",  uid, "workflow_runs", 1, {"workflow": wf})
 
     # AgentStudio-specific agent_run metric
     if tags & AGENT_TAGS or wf.startswith("agent"):
-        send_event(f"{tid}-ar", uid, "agent_runs", 1, {"workflow": wf, "tokens": str(tokens)})
+        send_event(f"{tid}-ar", uid, "agent_runs", 1, {"workflow": wf})
         log.info("agent_run billed trace=%s user=%s", tid, uid)
 
 

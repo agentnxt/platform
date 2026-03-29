@@ -176,9 +176,6 @@ services:
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_HOST=http://observellm:3000
       - STORE_MODEL_IN_DB=True
-      - LAGO_API_BASE=http://billing-api:3000
-      - LAGO_API_KEY=${LAGO_API_KEY:-}
-      - LAGO_LITELLM_EVENT_NAME=llm_tokens
     volumes:
       - ./gateway/config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000"]
@@ -441,6 +438,10 @@ services:
       - LAGO_API_URL=http://billing-api:3000
       - LAGO_API_KEY=${LAGO_API_KEY:-}
       - BRIDGE_PORT=8090
+      - LANGFUSE_URL=http://observellm:3000
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - POLL_INTERVAL=30
     volumes:
       - ./bridge/bridge.py:/app/bridge.py:ro
     command: ["python3", "-u", "/app/bridge.py"]
@@ -743,9 +744,6 @@ services:
       - NEXT_PUBLIC_SOCKET_URL=https://agentstudio-realtime.agnxxt.com
       - SOCKET_SERVER_URL=http://agentstudio-realtime:3002
       - OLLAMA_URL=http://localllm:11434
-      # LLM Gateway — all model calls route through LiteLLM for billing + tracing
-      - OPENAI_API_BASE=http://gateway:4000/v1
-      - OPENAI_API_KEY=${LITELLM_MASTER_KEY:-sk-master}
       # Traces → ObserveLLM (Langfuse)
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
@@ -765,8 +763,6 @@ services:
       agentstudio-migrate:
         condition: service_completed_successfully
       redis:
-        condition: service_started
-      gateway:
         condition: service_started
 
   agentstudio-realtime:

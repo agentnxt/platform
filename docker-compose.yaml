@@ -283,11 +283,6 @@ services:
     <<: *hardened
     cap_add:
       - NET_BIND_SERVICE
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/cache/nginx
-      - /var/run
     ports:
       - "${BILLING_FRONT_PORT:-3201}:80"
     environment:
@@ -350,9 +345,10 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     <<: *internal-only
-    read_only: true
-    tmpfs:
-      - /data
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
     deploy:
       resources:

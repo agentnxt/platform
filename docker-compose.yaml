@@ -758,7 +758,7 @@ services:
       - DAC_OVERRIDE
     ports:
       - "${SURREALDB_PORT:-8000}:8000"
-    command: ["start", "--bind", "0.0.0.0:8000", "--user", "root", "--pass", "${SURREALDB_PASSWORD:-surrealdb}", "file:///data"]
+    command: ["start", "--bind", "0.0.0.0:8000", "--user", "root", "--pass", "${SURREALDB_PASSWORD:-surrealdb}", "memory"]
     volumes:
       - surrealdb_data:/data
     networks:

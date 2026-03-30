@@ -726,6 +726,22 @@ services:
       agentstudio-db:
         condition: service_healthy
 
+  agentstudio-branding:
+    image: nginx:alpine
+    restart: unless-stopped
+    <<: *internal-only
+    volumes:
+      - ./agentstudio/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    depends_on:
+      - agentstudio
+
   agentstudio:
     image: ghcr.io/simstudioai/simstudio:latest
     restart: unless-stopped

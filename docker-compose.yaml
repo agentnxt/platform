@@ -732,6 +732,9 @@ services:
       - NET_BIND_SERVICE
     ports:
       - "${AGENTSTUDIO_PORT:-3400}:3000"
+    volumes:
+      - ./agentstudio/public/icon.svg:/app/apps/sim/public/icon.svg:ro
+      - ./agentstudio/public/favicon/favicon.svg:/app/apps/sim/public/favicon/favicon.svg:ro
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@agentstudio-db:5432/simstudio

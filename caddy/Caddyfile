@@ -8,6 +8,16 @@ agentflow.agnxxt.com {
 }
 
 agentstudio.agnxxt.com {
+    # Inject custom CSS for AS branding, layout, and background
+    header /login* Link "</custom/override.css>; rel=stylesheet"
+    header /sign-up* Link "</custom/override.css>; rel=stylesheet"
+
+    # Serve custom static assets
+    handle /custom/* {
+        root * /srv/agentstudio
+        file_server
+    }
+
     reverse_proxy agentstudio:3000
 }
 

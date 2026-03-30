@@ -105,6 +105,7 @@ services:
       - "443:443/udp"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./agentstudio/custom:/srv/agentstudio/custom:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
@@ -735,6 +736,7 @@ services:
     volumes:
       - ./agentstudio/public/icon.svg:/app/apps/sim/public/icon.svg:ro
       - ./agentstudio/public/favicon/favicon.svg:/app/apps/sim/public/favicon/favicon.svg:ro
+      - ./agentstudio/public/logo/sim-landing.svg:/app/apps/sim/public/logo/sim-landing.svg:ro
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@agentstudio-db:5432/simstudio

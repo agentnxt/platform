@@ -1,0 +1,9 @@
+<svg fill="none" height="22" viewBox="0 0 120 22" width="120" xmlns="http://www.w3.org/2000/svg">
+  <!-- AS icon -->
+  <rect x="0" y="1" width="9" height="9" rx="2" fill="#33c482"/>
+  <rect x="10.5" y="1" width="9" height="9" rx="2" fill="#33c482" opacity="0.5"/>
+  <rect x="0" y="11.5" width="9" height="9" rx="2" fill="#33c482" opacity="0.5"/>
+  <rect x="10.5" y="11.5" width="9" height="9" rx="2" fill="#33c482"/>
+  <!-- AgentStudio text -->
+  <text x="25" y="16" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#f6f6f0" letter-spacing="-0.3">AgentStudio</text>
+</svg>

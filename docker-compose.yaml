@@ -556,8 +556,9 @@ services:
     environment:
       - TRUST_PROXY_HEADER=1
       - DB_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/auth
-      - ENDPOINT=${LOGTO_ENDPOINT:-http://localhost:3301}
-      - ADMIN_ENDPOINT=${LOGTO_ADMIN_ENDPOINT:-http://localhost:3302}
+      - ENDPOINT=${LOGTO_ENDPOINT:-https://auth.agnxxt.com}
+      - ADMIN_ENDPOINT=${LOGTO_ADMIN_ENDPOINT:-https://auth-admin.agnxxt.com}
+      - HOST=0.0.0.0
     networks:
       - frontend
       - internal

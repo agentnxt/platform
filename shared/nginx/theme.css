@@ -1,0 +1,116 @@
+/* ── AutonomyX Platform — Shared Dark Theme ─────────────────────── */
+
+:root {
+  --ax-bg:         #0b0b0b;
+  --ax-bg-card:    #111111;
+  --ax-accent:     #33c482;
+  --ax-accent-h:   #2db070;
+  --ax-text:       #f6f6f0;
+  --ax-muted:      #888;
+  --ax-border:     rgba(255,255,255,0.08);
+}
+
+/* ── Base ─────────────────────────────────────────────────── */
+html, body {
+  background: var(--ax-bg) !important;
+  color:      var(--ax-text) !important;
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+button[type="submit"] {
+  background:  var(--ax-accent) !important;
+  color:       var(--ax-bg)     !important;
+  font-weight: 700              !important;
+  border:      none             !important;
+}
+button[type="submit"]:hover {
+  background:  var(--ax-accent-h)                  !important;
+  box-shadow:  0 0 28px rgba(51,196,130,0.40)      !important;
+}
+
+/* ── Inputs ───────────────────────────────────────────────── */
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--ax-accent)                !important;
+  box-shadow:   0 0 0 2px rgba(51,196,130,0.18) !important;
+  outline:      none                            !important;
+}
+
+/* ── Links ────────────────────────────────────────────────── */
+a { color: var(--ax-accent) !important; }
+a:hover { color: var(--ax-accent-h) !important; }
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: 6px; height: 6px; }
+::-webkit-scrollbar-track        { background: #111; }
+::-webkit-scrollbar-thumb        { background: var(--ax-accent); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--ax-accent-h); }
+
+/* ════════════════════════════════════════════════════════════
+   Streamlit overrides (AgentCrew)
+   ════════════════════════════════════════════════════════════ */
+.stApp {
+  background: var(--ax-bg) !important;
+}
+[data-testid="stSidebar"] {
+  background: var(--ax-bg-card) !important;
+  border-right: 1px solid var(--ax-border) !important;
+}
+[data-testid="stHeader"] {
+  background: var(--ax-bg) !important;
+  border-bottom: 1px solid var(--ax-border) !important;
+}
+
+/* Streamlit buttons */
+.stButton > button {
+  background:  var(--ax-accent) !important;
+  color:       var(--ax-bg)     !important;
+  font-weight: 700              !important;
+  border:      none             !important;
+}
+.stButton > button:hover {
+  background:  var(--ax-accent-h)             !important;
+  box-shadow:  0 0 20px rgba(51,196,130,0.35) !important;
+  border:      none                           !important;
+}
+.stButton > button:focus {
+  box-shadow: 0 0 0 2px rgba(51,196,130,0.35) !important;
+}
+
+/* Streamlit inputs */
+.stTextInput   input:focus,
+.stTextArea    textarea:focus,
+.stSelectbox   select:focus,
+.stNumberInput input:focus {
+  border-color: var(--ax-accent)                !important;
+  box-shadow:   0 0 0 2px rgba(51,196,130,0.18) !important;
+}
+
+/* Streamlit accent elements */
+.stProgress > div > div {
+  background: var(--ax-accent) !important;
+}
+[data-testid="stMetricValue"] {
+  color: var(--ax-accent) !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   Langflow overrides (AgentFlow)
+   ════════════════════════════════════════════════════════════ */
+
+/* Force dark background even if Langflow loads in light mode */
+#root, .dark, [data-theme] {
+  --background: 11 11 11 !important;
+}
+
+/* Accent ring on focused elements */
+[data-radix-focus-guard] ~ *:focus-visible,
+*:focus-visible {
+  outline-color: var(--ax-accent) !important;
+}
+
+/* Node header accent line */
+.react-flow__node:has(.selected) {
+  box-shadow: 0 0 0 2px var(--ax-accent) !important;
+}

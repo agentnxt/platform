@@ -850,6 +850,10 @@ services:
       - REDIS_URL=redis://redis:6379/2
       - BETTER_AUTH_SECRET=${AGENTSTUDIO_AUTH_SECRET:-changeme_generate_openssl_rand_hex_32}
       - BETTER_AUTH_URL=https://agentstudio.agnxxt.com
+      # Logto SSO (OIDC)
+      - LOGTO_CLIENT_ID=${AGENTSTUDIO_LOGTO_CLIENT_ID:-kakuwqj69teoec1vbetdb}
+      - LOGTO_CLIENT_SECRET=${AGENTSTUDIO_LOGTO_CLIENT_SECRET:-55C7sZdC8uaJMtAn7s2gx66qcPufsaT5}
+      - LOGTO_ISSUER=https://auth.agnxxt.com/oidc
       - ENCRYPTION_KEY=${AGENTSTUDIO_ENCRYPTION_KEY:-changeme_32chars_exactly_here_ok_}
       - API_ENCRYPTION_KEY=${AGENTSTUDIO_API_KEY:-changeme_32chars_api_key_here_ok__}
       - INTERNAL_API_SECRET=${AGENTSTUDIO_INTERNAL_SECRET:-changeme_internal_secret_key_here}

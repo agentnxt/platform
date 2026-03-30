@@ -757,7 +757,7 @@ services:
     cap_add:
       - NET_BIND_SERVICE
     ports:
-      - "${CONTENT_STUDIO_PORT:-3600}:3600"
+      - "${CONTENT_STUDIO_PORT:-3610}:3600"
     environment:
       - NEXT_PUBLIC_API_URL=https://api.agnxxt.com
     networks:

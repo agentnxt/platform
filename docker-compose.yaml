@@ -61,6 +61,17 @@
 #   MAIL_PORT                    – HTTPS admin port        (default: 4500)
 #   STALWART_HOSTNAME            – Mail FQDN               (default: mail.example.com)
 #   ADMIN_SECRET                 – Mail admin password      (default: auto-generated)
+#
+#   LibreChat
+#   LIBRECHAT_CREDS_KEY          – 32-byte hex             (generate: openssl rand -hex 32)
+#   LIBRECHAT_CREDS_IV           – 16-byte hex             (generate: openssl rand -hex 16)
+#   LIBRECHAT_JWT_SECRET         – JWT secret              (generate: openssl rand -hex 32)
+#   LIBRECHAT_JWT_REFRESH_SECRET – JWT refresh secret      (generate: openssl rand -hex 32)
+#   MEILI_MASTER_KEY             – Meilisearch master key  (generate: openssl rand -hex 24)
+#
+#   Typebot
+#   TYPEBOT_ENCRYPTION_SECRET    – 32-char secret          (generate: openssl rand -hex 16)
+#   SMTP_PASSWORD                – Stalwart SMTP password  (default: Autonomyx@2025!)
 ##############################################################################
 
 # ── Shared hardening defaults ────────────────────────────────────────────
@@ -1324,6 +1335,152 @@ services:
         limits:
           memory: 256M
 
+  # ══════════════════════════════════════════════════════════════════════
+  # LibreChat — AI Chat Interface (chat.agnxxt.com)
+  # ══════════════════════════════════════════════════════════════════════
+  librechat-mongodb:
+    image: mongo:8.0.20
+    restart: unless-stopped
+    <<: *internal-only
+    volumes:
+      - librechat_mongodb_data:/data/db
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  librechat-meilisearch:
+    image: getmeili/meilisearch:v1.35.1
+    restart: unless-stopped
+    <<: *internal-only
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-changeme_meili_master_key_min24chars}
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - librechat_meilisearch_data:/meili_data
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  librechat:
+    image: ghcr.io/danny-avila/librechat:v0.8.4
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${LIBRECHAT_PORT:-3600}:3080"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3080
+      - MONGO_URI=mongodb://librechat-mongodb:27017/LibreChat
+      - DOMAIN_CLIENT=https://chat.agnxxt.com
+      - DOMAIN_SERVER=https://chat.agnxxt.com
+      - CREDS_KEY=${LIBRECHAT_CREDS_KEY:-changeme32bytehexkeychangeme3200}
+      - CREDS_IV=${LIBRECHAT_CREDS_IV:-changeme16bytehex}
+      - JWT_SECRET=${LIBRECHAT_JWT_SECRET:-changeme_jwt_secret_key_here_min32}
+      - JWT_REFRESH_SECRET=${LIBRECHAT_JWT_REFRESH_SECRET:-changeme_jwt_refresh_secret_here}
+      - MEILI_HOST=http://librechat-meilisearch:7700
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-changeme_meili_master_key_min24chars}
+      - USE_REDIS=true
+      - REDIS_URI=redis://redis:6379/3
+      # LLM — route all providers through gateway
+      - OPENAI_API_KEY=${LITELLM_MASTER_KEY:-sk-master}
+      - OPENAI_REVERSE_PROXY=http://gateway:4000/v1
+      - ANTHROPIC_API_KEY=${LITELLM_MASTER_KEY:-sk-master}
+      - ANTHROPIC_REVERSE_PROXY=http://gateway:4000/v1
+      # Tracing → ObserveLLM (Langfuse)
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_BASE_URL=http://observellm:3000
+      - ALLOW_REGISTRATION=true
+      - ALLOW_SOCIAL_LOGIN=false
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      - librechat-mongodb
+      - librechat-meilisearch
+      - redis
+      - gateway
+
+  # ══════════════════════════════════════════════════════════════════════
+  # Typebot — Visual Chatbot Builder (typebot.agnxxt.com + bot.agnxxt.com)
+  # ══════════════════════════════════════════════════════════════════════
+  typebot-builder:
+    image: baptistearno/typebot-builder:3.15.2
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${TYPEBOT_BUILDER_PORT:-3700}:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/typebot
+      - REDIS_URL=redis://redis:6379/4
+      - ENCRYPTION_SECRET=${TYPEBOT_ENCRYPTION_SECRET:-changeme_32char_secret_key_here!}
+      - NEXTAUTH_URL=https://typebot.agnxxt.com
+      - NEXT_PUBLIC_VIEWER_URL=https://bot.agnxxt.com
+      - NODE_OPTIONS=--no-node-snapshot
+      # Email — magic link login via Stalwart
+      - SMTP_USERNAME=noreply@agnxxt.com
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-Autonomyx@2025!}
+      - SMTP_HOST=mailserver
+      - SMTP_PORT=587
+      - SMTP_AUTH_DISABLED=false
+      - NEXT_PUBLIC_SMTP_FROM=AgentStudio <noreply@agnxxt.com>
+      - ADMIN_EMAIL=${TYPEBOT_ADMIN_EMAIL:-admin@agnxxt.com}
+      # Disable telemetry
+      - NEXT_PUBLIC_POSTHOG_KEY=
+      - NEXT_PUBLIC_HOTJAR_ID=
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  typebot-viewer:
+    image: baptistearno/typebot-viewer:3.15.2
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+    ports:
+      - "${TYPEBOT_VIEWER_PORT:-3701}:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/typebot
+      - REDIS_URL=redis://redis:6379/4
+      - ENCRYPTION_SECRET=${TYPEBOT_ENCRYPTION_SECRET:-changeme_32char_secret_key_here!}
+      - NEXTAUTH_URL=https://typebot.agnxxt.com
+      - NEXT_PUBLIC_VIEWER_URL=https://bot.agnxxt.com
+      - NODE_OPTIONS=--no-node-snapshot
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   caddy_data:
   caddy_config:
@@ -1342,3 +1499,5 @@ volumes:
   argilla_data:
   mlflow_data:
   nats_data:
+  librechat_mongodb_data:
+  librechat_meilisearch_data:

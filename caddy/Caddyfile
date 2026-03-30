@@ -1,6 +1,20 @@
 # AutonomyX Platform — Caddy Reverse Proxy
 # Auto-SSL via Let's Encrypt for all *.agnxxt.com subdomains
 
+# ── AI Chat & Chatbot Builder ─────────────────────────────────
+
+chat.agnxxt.com {
+    reverse_proxy librechat:3080
+}
+
+typebot.agnxxt.com {
+    reverse_proxy typebot-builder:3000
+}
+
+bot.agnxxt.com {
+    reverse_proxy typebot-viewer:3000
+}
+
 # ── AI Platform ──────────────────────────────────────────────
 
 agentflow.agnxxt.com {

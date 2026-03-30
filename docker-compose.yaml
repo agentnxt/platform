@@ -74,8 +74,10 @@
 #   SMTP_PASSWORD                – Stalwart SMTP password  (default: Autonomyx@2025!)
 #
 #   AgentCrew Tools
-#   SERPER_API_KEY               – Web search for crews    (get from serper.dev)
 #   SKYVERN_API_KEY              – Browser automation key  (get from Skyvern UI after setup)
+#
+#   SearXNG
+#   SEARXNG_SECRET_KEY           – SearXNG secret          (generate: openssl rand -hex 32)
 ##############################################################################
 
 # ── Shared hardening defaults ────────────────────────────────────────────
@@ -912,8 +914,8 @@ services:
       # Browser automation — Skyvern REST API
       - SKYVERN_API_URL=http://skyvern:8000
       - SKYVERN_API_KEY=${SKYVERN_API_KEY:-}
-      # Web search
-      - SERPER_API_KEY=${SERPER_API_KEY:-}
+      # Web search — self-hosted SearXNG
+      - SEARXNG_URL=http://searxng:8080
     networks:
       - frontend
       - internal
@@ -1345,6 +1347,32 @@ services:
       resources:
         limits:
           memory: 256M
+
+  # ══════════════════════════════════════════════════════════════════════
+  # SearXNG — Self-hosted Metasearch Engine (search.agnxxt.com)
+  # ══════════════════════════════════════════════════════════════════════
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    <<: *hardened
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETGID
+      - SETUID
+    ports:
+      - "${SEARXNG_PORT:-8400}:8080"
+    environment:
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:-changeme_searxng_secret_key_here32}
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # ══════════════════════════════════════════════════════════════════════
   # Skyvern — Vision-based Browser Automation (skyvern.agnxxt.com)

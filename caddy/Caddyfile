@@ -1,6 +1,12 @@
 # AutonomyX Platform — Caddy Reverse Proxy
 # Auto-SSL via Let's Encrypt for all *.agnxxt.com subdomains
 
+# ── Search ───────────────────────────────────────────────────
+
+search.agnxxt.com {
+    reverse_proxy searxng:8080
+}
+
 # ── Browser Automation ───────────────────────────────────────
 
 skyvern.agnxxt.com {

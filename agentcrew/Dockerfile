@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Our additions
 COPY seed_crews.py /app/seed_crews.py
+COPY searxng_tool.py /app/searxng_tool.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

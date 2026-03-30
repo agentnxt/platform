@@ -139,6 +139,10 @@ services:
       - OPENAI_API_BASE=http://gateway:4000
       - OPENAI_API_KEY=${LITELLM_MASTER_KEY:-sk-master}
       - OLLAMA_BASE_URL=http://localllm:11434
+      # Tracing → ObserveLLM (Langfuse)
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=http://observellm:3000
     volumes:
       - agentflow_data:/app/langflow
     networks:
@@ -153,6 +157,40 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  agentflow-proxy:
+    image: nginx:alpine
+    restart: unless-stopped
+    <<: *internal-only
+    volumes:
+      - ./agentflow/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./agentstudio/nginx/analytics-init.js:/etc/nginx/static/analytics-init.js:ro
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    depends_on:
+      - agentflow
+
+  agentcrew-proxy:
+    image: nginx:alpine
+    restart: unless-stopped
+    <<: *internal-only
+    volumes:
+      - ./agentcrew/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./agentstudio/nginx/analytics-init.js:/etc/nginx/static/analytics-init.js:ro
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    depends_on:
+      - agentcrew
 
   # ══════════════════════════════════════════════════════════════════════
   # LLM Gateway — Unified LLM Proxy (LiteLLM)
@@ -732,6 +770,7 @@ services:
     <<: *internal-only
     volumes:
       - ./agentstudio/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./agentstudio/nginx/analytics-init.js:/etc/nginx/static/analytics-init.js:ro
     networks:
       - frontend
       - internal
@@ -777,6 +816,12 @@ services:
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_BASEURL=http://observellm:3000
+      # Email — Stalwart SMTP
+      - EMAIL_SERVER_HOST=mailserver
+      - EMAIL_SERVER_PORT=587
+      - EMAIL_SERVER_USER=noreply@agnxxt.com
+      - EMAIL_SERVER_PASSWORD=${SMTP_PASSWORD:-Autonomyx@2025!}
+      - EMAIL_FROM=AgentStudio <noreply@agnxxt.com>
     networks:
       - frontend
       - internal
@@ -837,9 +882,16 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-platform}
       - POSTGRES_DB=agentcrew
       - POSTGRES_HOST=db
-      - OLLAMA_URL=http://localllm:11434
       - OPENAI_API_KEY=${LITELLM_MASTER_KEY:-sk-master}
       - OPENAI_API_BASE=http://gateway:4000/v1
+      - OPENAI_PROXY_MODELS=openai/gpt-4o,openai/gpt-4o-mini,anthropic/claude-3-5-sonnet,anthropic/claude-3-haiku
+      - OLLAMA_HOST=http://localllm:11434
+      - OLLAMA_MODELS=qwen2.5:7b,phi3.5
+      - DB_URL=postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@db:5432/agentcrew
+      # Tracing → ObserveLLM (Langfuse)
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_HOST=http://observellm:3000
     networks:
       - frontend
       - internal

@@ -4,7 +4,7 @@
 # ── AI Platform ──────────────────────────────────────────────
 
 agentflow.agnxxt.com {
-    reverse_proxy agentflow:7860
+    reverse_proxy agentflow-proxy:7861
 }
 
 agentstudio.agnxxt.com {
@@ -16,7 +16,7 @@ agentstudio-realtime.agnxxt.com {
 }
 
 agentcrew.agnxxt.com {
-    reverse_proxy agentcrew:8501
+    reverse_proxy agentcrew-proxy:8502
 }
 
 gateway.agnxxt.com {

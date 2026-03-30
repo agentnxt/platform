@@ -6,6 +6,7 @@ on:
     paths:
       - 'apps/**'
       - 'packages/**'
+      - 'agentcrew/**'
       - 'docker-compose.yaml'
       - '.github/workflows/build.yml'
   workflow_dispatch:
@@ -35,8 +36,8 @@ jobs:
             context: .
             dockerfile: apps/content-studio/Dockerfile
           - name: agentcrew
-            context: https://github.com/strnad/CrewAI-Studio.git
-            dockerfile: Dockerfile
+            context: agentcrew
+            dockerfile: agentcrew/Dockerfile
 
     steps:
       - name: Checkout

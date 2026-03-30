@@ -78,6 +78,9 @@
 #   META_AD_LIBRARY_TOKEN        – Meta Ad Library API     (get from developers.facebook.com)
 #   GOOGLE_PSE_API_KEY           – Google Programmable Search  (get from console.cloud.google.com)
 #   GOOGLE_PSE_CX                – Search Engine ID            (get from programmablesearchengine.google.com)
+#   AMADEUS_API_KEY              – Amadeus Travel API key   (get from developers.amadeus.com)
+#   AMADEUS_API_SECRET           – Amadeus Travel API secret (get from developers.amadeus.com)
+#   G2_API_KEY                   – G2 software reviews API  (from your G2 account)
 #   YOUTUBE_API_KEY              – YouTube Data API v3     (get from console.cloud.google.com)
 #   GOOGLE_MAPS_API_KEY          – Google Maps Platform    (get from console.cloud.google.com — covers Places/Reviews/Photos/Directions)
 #
@@ -173,6 +176,9 @@ services:
       - META_AD_LIBRARY_TOKEN=${META_AD_LIBRARY_TOKEN:-}
       - GOOGLE_PSE_API_KEY=${GOOGLE_PSE_API_KEY:-}
       - GOOGLE_PSE_CX=${GOOGLE_PSE_CX:-}
+      - AMADEUS_API_KEY=${AMADEUS_API_KEY:-}
+      - AMADEUS_API_SECRET=${AMADEUS_API_SECRET:-}
+      - G2_API_KEY=${G2_API_KEY:-}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
     volumes:
@@ -856,6 +862,9 @@ services:
       - META_AD_LIBRARY_TOKEN=${META_AD_LIBRARY_TOKEN:-}
       - GOOGLE_PSE_API_KEY=${GOOGLE_PSE_API_KEY:-}
       - GOOGLE_PSE_CX=${GOOGLE_PSE_CX:-}
+      - AMADEUS_API_KEY=${AMADEUS_API_KEY:-}
+      - AMADEUS_API_SECRET=${AMADEUS_API_SECRET:-}
+      - G2_API_KEY=${G2_API_KEY:-}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
       # Email — Stalwart SMTP
@@ -944,6 +953,9 @@ services:
       - META_AD_LIBRARY_TOKEN=${META_AD_LIBRARY_TOKEN:-}
       - GOOGLE_PSE_API_KEY=${GOOGLE_PSE_API_KEY:-}
       - GOOGLE_PSE_CX=${GOOGLE_PSE_CX:-}
+      - AMADEUS_API_KEY=${AMADEUS_API_KEY:-}
+      - AMADEUS_API_SECRET=${AMADEUS_API_SECRET:-}
+      - G2_API_KEY=${G2_API_KEY:-}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
     networks:

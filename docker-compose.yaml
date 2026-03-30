@@ -160,6 +160,11 @@ services:
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_HOST=http://observellm:3000
+      # Tools
+      - SEARXNG_URL=http://searxng:8080
+      - QDRANT_URL=http://qdrant:6333
+      - SKYVERN_API_URL=http://skyvern:8000
+      - SKYVERN_API_KEY=${SKYVERN_API_KEY:-}
     volumes:
       - agentflow_data:/app/langflow
     networks:
@@ -833,6 +838,11 @@ services:
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_BASEURL=http://observellm:3000
+      # Tools
+      - SEARXNG_URL=http://searxng:8080
+      - QDRANT_URL=http://qdrant:6333
+      - SKYVERN_API_URL=http://skyvern:8000
+      - SKYVERN_API_KEY=${SKYVERN_API_KEY:-}
       # Email — Stalwart SMTP
       - EMAIL_SERVER_HOST=mailserver
       - EMAIL_SERVER_PORT=587

@@ -1,5 +1,5 @@
 # SearXNG settings — AgentNext Platform
-# Optimised for agent/API use: JSON enabled, limiter off, safe search off
+# Optimised for agent/API use: JSON enabled, limiter off, all major engines active
 
 use_default_settings: true
 
@@ -25,8 +25,8 @@ search:
     - html
     - json   # required for agent API calls
 
-# Enable key engines for broad coverage
 engines:
+  # ── Web ──────────────────────────────────────────────────────
   - name: google
     engine: google
     shortcut: g
@@ -42,9 +42,74 @@ engines:
     shortcut: d
     disabled: false
 
-  - name: wikipedia
-    engine: wikipedia
-    shortcut: w
+  - name: brave
+    engine: brave
+    shortcut: br
+    disabled: false
+
+  # ── News ─────────────────────────────────────────────────────
+  - name: google news
+    engine: google_news
+    shortcut: gn
+    disabled: false
+
+  - name: bing news
+    engine: bing_news
+    shortcut: bn
+    disabled: false
+
+  - name: reddit
+    engine: reddit
+    shortcut: re
+    disabled: false
+
+  - name: hackernews
+    engine: hackernews
+    shortcut: hn
+    disabled: false
+
+  # ── Video ─────────────────────────────────────────────────────
+  - name: youtube
+    engine: youtube_noapi
+    shortcut: yt
+    disabled: false
+
+  - name: vimeo
+    engine: vimeo
+    shortcut: vm
+    disabled: false
+
+  # ── Maps & Local ──────────────────────────────────────────────
+  - name: google maps
+    engine: google_maps
+    shortcut: gm
+    disabled: false
+
+  - name: openstreetmap
+    engine: openstreetmap
+    shortcut: osm
+    disabled: false
+
+  # ── Shopping ──────────────────────────────────────────────────
+  - name: google shopping
+    engine: google_shopping
+    shortcut: gs
+    disabled: false
+
+  - name: amazon
+    engine: amazon
+    shortcut: amz
+    disabled: false
+
+  - name: ebay
+    engine: ebay
+    shortcut: eb
+    disabled: false
+
+  # ── Academic & Research ───────────────────────────────────────
+  - name: google scholar
+    engine: google_scholar
+    shortcut: gsc
     disabled: false
 
   - name: arxiv
@@ -52,6 +117,33 @@ engines:
     shortcut: ax
     disabled: false
 
+  - name: pubmed
+    engine: pubmed
+    shortcut: pm
+    disabled: false
+
+  - name: semantic scholar
+    engine: semantic_scholar
+    shortcut: ss
+    disabled: false
+
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: w
+    disabled: false
+
+  # ── Jobs ──────────────────────────────────────────────────────
+  - name: google jobs
+    engine: google_jobs
+    shortcut: gj
+    disabled: false
+
+  - name: linkedin
+    engine: linkedin
+    shortcut: li
+    disabled: false
+
+  # ── Code & Tech ───────────────────────────────────────────────
   - name: github
     engine: github
     shortcut: gh
@@ -60,6 +152,60 @@ engines:
   - name: stackoverflow
     engine: stackoverflow
     shortcut: so
+    disabled: false
+
+  - name: npm
+    engine: npm
+    shortcut: npm
+    disabled: false
+
+  - name: pypi
+    engine: pypi
+    shortcut: pypi
+    disabled: false
+
+  - name: dockerhub
+    engine: docker_hub
+    shortcut: dh
+    disabled: false
+
+  # ── Images ────────────────────────────────────────────────────
+  - name: google images
+    engine: google_images
+    shortcut: gi
+    disabled: false
+
+  - name: bing images
+    engine: bing_images
+    shortcut: bi
+    disabled: false
+
+  - name: unsplash
+    engine: unsplash
+    shortcut: us
+    disabled: false
+
+  # ── Finance ───────────────────────────────────────────────────
+  - name: yahoo finance
+    engine: yahoo_finance
+    shortcut: yf
+    disabled: false
+
+  # ── Social ────────────────────────────────────────────────────
+  - name: mastodon
+    engine: mastodon
+    shortcut: md
+    disabled: false
+
+  # ── General Knowledge ─────────────────────────────────────────
+  - name: wikidata
+    engine: wikidata
+    shortcut: wd
+    disabled: false
+
+  - name: wolframalpha
+    engine: wolframalpha_noapi
+    shortcut: wa
     disabled: false
 
 outgoing:

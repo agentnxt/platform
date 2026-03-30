@@ -207,7 +207,6 @@ services:
     volumes:
       - ./agentflow/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./agentstudio/nginx/analytics-init.js:/etc/nginx/static/analytics-init.js:ro
-      - ./shared/nginx/theme.css:/etc/nginx/static/theme.css:ro
     networks:
       - frontend
       - internal
@@ -229,7 +228,6 @@ services:
     volumes:
       - ./agentcrew/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./agentstudio/nginx/analytics-init.js:/etc/nginx/static/analytics-init.js:ro
-      - ./shared/nginx/theme.css:/etc/nginx/static/theme.css:ro
     networks:
       - frontend
       - internal
@@ -824,7 +822,6 @@ services:
     volumes:
       - ./agentstudio/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./agentstudio/nginx/analytics-init.js:/etc/nginx/static/analytics-init.js:ro
-      - ./shared/nginx/theme.css:/etc/nginx/static/theme.css:ro
     networks:
       - frontend
       - internal

@@ -76,6 +76,8 @@
 #   AgentCrew Tools
 #   SKYVERN_API_KEY              – Browser automation key  (get from Skyvern UI after setup)
 #   META_AD_LIBRARY_TOKEN        – Meta Ad Library API     (get from developers.facebook.com)
+#   GOOGLE_PSE_API_KEY           – Google Programmable Search  (get from console.cloud.google.com)
+#   GOOGLE_PSE_CX                – Search Engine ID            (get from programmablesearchengine.google.com)
 #   YOUTUBE_API_KEY              – YouTube Data API v3     (get from console.cloud.google.com)
 #   GOOGLE_MAPS_API_KEY          – Google Maps Platform    (get from console.cloud.google.com — covers Places/Reviews/Photos/Directions)
 #
@@ -169,6 +171,8 @@ services:
       - SKYVERN_API_URL=http://skyvern:8000
       - SKYVERN_API_KEY=${SKYVERN_API_KEY:-}
       - META_AD_LIBRARY_TOKEN=${META_AD_LIBRARY_TOKEN:-}
+      - GOOGLE_PSE_API_KEY=${GOOGLE_PSE_API_KEY:-}
+      - GOOGLE_PSE_CX=${GOOGLE_PSE_CX:-}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
     volumes:
@@ -850,6 +854,8 @@ services:
       - SKYVERN_API_URL=http://skyvern:8000
       - SKYVERN_API_KEY=${SKYVERN_API_KEY:-}
       - META_AD_LIBRARY_TOKEN=${META_AD_LIBRARY_TOKEN:-}
+      - GOOGLE_PSE_API_KEY=${GOOGLE_PSE_API_KEY:-}
+      - GOOGLE_PSE_CX=${GOOGLE_PSE_CX:-}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
       # Email — Stalwart SMTP
@@ -936,6 +942,8 @@ services:
       # Web search — self-hosted SearXNG
       - SEARXNG_URL=http://searxng:8080
       - META_AD_LIBRARY_TOKEN=${META_AD_LIBRARY_TOKEN:-}
+      - GOOGLE_PSE_API_KEY=${GOOGLE_PSE_API_KEY:-}
+      - GOOGLE_PSE_CX=${GOOGLE_PSE_CX:-}
       - YOUTUBE_API_KEY=${YOUTUBE_API_KEY:-}
       - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
     networks:

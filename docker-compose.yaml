@@ -512,6 +512,7 @@ services:
       - mailserver_data:/opt/stalwart
     networks:
       - frontend
+      - internal
     deploy:
       resources:
         limits:
@@ -1106,7 +1107,7 @@ services:
       - SECRET_KEY=${GLITCHTIP_SECRET_KEY:-changeme_glitchtip_secret_key_32c}
       - GLITCHTIP_DOMAIN=https://errors.agnxxt.com
       - DEFAULT_FROM_EMAIL=${GLITCHTIP_FROM_EMAIL:-errors@agnxxt.com}
-      - EMAIL_URL=${GLITCHTIP_EMAIL_URL:-consolemail://}
+      - EMAIL_URL=smtp://noreply@agnxxt.com:Autonomyx@2025!@mailserver:587
       - ENABLE_OPEN_USER_REGISTRATION=False
     networks:
       - frontend
@@ -1135,7 +1136,7 @@ services:
       - SECRET_KEY=${GLITCHTIP_SECRET_KEY:-changeme_glitchtip_secret_key_32c}
       - GLITCHTIP_DOMAIN=https://errors.agnxxt.com
       - DEFAULT_FROM_EMAIL=${GLITCHTIP_FROM_EMAIL:-errors@agnxxt.com}
-      - EMAIL_URL=${GLITCHTIP_EMAIL_URL:-consolemail://}
+      - EMAIL_URL=smtp://noreply@agnxxt.com:Autonomyx@2025!@mailserver:587
     networks:
       - internal
     deploy:

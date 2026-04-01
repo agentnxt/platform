@@ -822,6 +822,7 @@ services:
     volumes:
       - ./agentstudio/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./agentstudio/nginx/analytics-init.js:/etc/nginx/static/analytics-init.js:ro
+      - ./agentstudio/custom/override.css:/etc/nginx/static/override.css:ro
     networks:
       - frontend
       - internal

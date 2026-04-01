@@ -1672,7 +1672,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U zabbix"]
       interval: 10s

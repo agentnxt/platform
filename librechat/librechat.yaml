@@ -43,3 +43,9 @@ mcpServers:
       - /app/mcp/ollama-mcp/index.mjs
     env:
       OLLAMA_URL: http://localllm:11434
+
+  composio:
+    type: sse
+    url: "https://backend.composio.dev/v3/mcp/0543771c-948c-415b-87ba-3306647dfd00?include_composio_helper_actions=true&user_id=default"
+    headers:
+      x-api-key: "${COMPOSIO_API_KEY}"

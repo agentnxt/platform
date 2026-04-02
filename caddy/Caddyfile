@@ -151,6 +151,14 @@ errors.agnxxt.com {
     reverse_proxy glitchtip:8080
 }
 
+monitor.agnxxt.com {
+    reverse_proxy zabbix-web:8080
+}
+
+memory.agnxxt.com {
+    reverse_proxy cognitive-memory:3100
+}
+
 marquez.agnxxt.com {
     reverse_proxy marquez-web:3000
 }

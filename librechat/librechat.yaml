@@ -9,3 +9,12 @@ mcpServers:
     env:
       SIMSTUDIO_URL: http://agentstudio:3000
       SIMSTUDIO_API_KEY: "${SIMSTUDIO_API_KEY}"
+
+  langflow:
+    type: stdio
+    command: node
+    args:
+      - /app/mcp/langflow-mcp/index.mjs
+    env:
+      LANGFLOW_URL: http://agentflow:7860
+      LANGFLOW_API_KEY: "${LANGFLOW_API_KEY}"

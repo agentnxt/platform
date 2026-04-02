@@ -1577,6 +1577,8 @@ services:
       - ./librechat/librechat.yaml:/app/librechat.yaml:ro
       - ./simstudio-mcp:/app/mcp/simstudio-mcp:ro
       - ./langflow-mcp:/app/mcp/langflow-mcp:ro
+      - ./skyvern-mcp:/app/mcp/skyvern-mcp:ro
+      - ./agentcrew-mcp:/app/mcp/agentcrew-mcp:ro
     networks:
       - frontend
       - internal

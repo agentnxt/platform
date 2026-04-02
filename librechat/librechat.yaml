@@ -18,3 +18,20 @@ mcpServers:
     env:
       LANGFLOW_URL: http://agentflow:7860
       LANGFLOW_API_KEY: "${LANGFLOW_API_KEY}"
+
+  skyvern:
+    type: stdio
+    command: node
+    args:
+      - /app/mcp/skyvern-mcp/index.mjs
+    env:
+      SKYVERN_URL: http://skyvern:8000
+      SKYVERN_API_KEY: "${SKYVERN_API_KEY}"
+
+  agentcrew:
+    type: stdio
+    command: node
+    args:
+      - /app/mcp/agentcrew-mcp/index.mjs
+    env:
+      AGENTCREW_URL: http://agentcrew:8502
